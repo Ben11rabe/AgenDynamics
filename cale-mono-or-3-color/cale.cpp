@@ -24,11 +24,11 @@
  */
 // 1 channel SPI epaper displays example:
 //#include <gdew075T7.h>
-//#include <gdew042t2.h>
+#include <gdew042t2.h>
 //#include <gdew027w3.h>
 //#include <gdeh0213b73.h>
 //#include <gdew0583z21.h>
-#include <color/gdeq042Z21.h>
+//#include <color/gdeq042Z21.h>
 EpdSpi io;
 //Gdeh0213b73 display(io);
 //Gdew0583z21 display(io);
@@ -562,3 +562,4 @@ void app_main(void)
 
     // Just test if Epd works: Compile the demo-epaper.cpp example modifying main/CMakeLists
 }
+

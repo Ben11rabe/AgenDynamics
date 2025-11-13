@@ -491,10 +491,11 @@ static void http_post(void)
 
     esp_http_client_config_t config = {
         .url = CONFIG_CALE_SCREEN_URL,
-        .method = HTTP_METHOD_POST,
+        .method = HTTP_METHOD_GET,
         .event_handler = _http_event_handler,
         .buffer_size = HTTP_RECEIVE_BUFFER_SIZE
-        };
+    };
+
     esp_http_client_handle_t client = esp_http_client_init(&config);
 
     // Authentication: Bearer    
@@ -503,7 +504,7 @@ static void http_post(void)
     
     printf("POST data: %s\n%s\n", post_data, bearerToken);
 
-    esp_http_client_set_header(client, "Authorization", bearerToken);
+    //esp_http_client_set_header(client, "Authorization", bearerToken);
     esp_http_client_set_post_field(client, post_data, strlen(post_data));
     
     esp_err_t err = esp_http_client_perform(client);
