@@ -1,407 +1,386 @@
-#include <stdio.h>
 #include <string>
 #include <vector>
+#include <inttypes.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
 #include "nvs_flash.h"
 #include "esp_event.h"
 #include "esp_netif.h"
 #include "esp_http_client.h"
+#include "driver/gpio.h"
+#include "esp_rom_gpio.h"
 #include <cstring>
 #include "tinyxml2.h"
 #include "cJSON.h"
-
 #include "epdspi.h"
 #include "gdew042t2.h"
 #include "Adafruit_GFX.h"
 #include "esp_task_wdt.h"
 #include "accents/remove_accents.h"
+#include "rc522/rfid.h"
+#include <inttypes.h>
+#include "data/salles.h"
+#include "wifi/wifi.h"
+#include "planning/planning.h"
+#include "display/display.h"
+
+
+// Buttons
+#define BUTTON_UP_PIN 26
+#define BUTTON_DOWN_PIN 25
+#define BUTTON_SELECT_PIN 17
+#define BUTTON_BACK_PIN 16
 
 using namespace tinyxml2;
 using std::string;
 using std::vector;
 
 static const char *TAG = "EPD_PLANNING";
-
 EpdSpi io;
 Gdew042t2 display(io);
 
-// CONFIG WIFI 
-#define WIFI_SSID "ASUS_ZenBook"
-#define WIFI_PASS "kingkong"
 
-// change ici pour la salle voulue
-#define SALLE_ID 207 // A304 - LEPRINCE-RINGUET
+// RC522
+static rc522_handle_t scanner = NULL;
 
-// ---------------- Liste des salles ----------------
-// Tu peux ajouter / supprimer des paires id->nom si tu veux les utiliser localement.
-struct SalleInfo { int id; const char* name; };
-static const SalleInfo salles[] = {
-    {169, "B008/B009 - FERMI-DIRAC"}, {170, "B008 - FERMI"}, {172, "B009 - DIRAC"}, {173, "A107 - TURING"},
-    {174, "A108 - BABBAGE"}, {175, "B005 - EULER"}, {176, "B006 - WEIERSTRASS"}, {177, "B108 - TAYLOR"},
-    {178, "B111 - RIEMANN"}, {179, "B113 - PASCAL"}, {180, "B114 - CAUCHY"}, {181, "B115 - FOURIER"},
-    {182, "B116 - DESCARTES"}, {183, "B118 - GAUSS"}, {184, "B404 - RAMANUJAN"}, {185, "B405 - GALOIS"},
-    {186, "A204 - WATT"}, {187, "A205 - BLONDEL"}, {188, "A206 - FLOYD"}, {189, "A207 - HOARE"},
-    {190, "A208 - von NEUMANN"}, {191, "A209 - BOOLE"}, {192, "B119 - BRAGG"}, {193, "B204 - BODE"},
-    {195, "B209 - VOLTA"}, {196, "B211 - CARNOT"}, {197, "B219 - MAXWELL"}, {198, "B304 - AMPERE"},
-    {200, "B305 - FRESNEL"}, {201, "B306 - MICHELSON"}, {202, "B308 - FARADAY"}, {203, "B309 - LAPLACE"},
-    {204, "B313 - BRANLY"}, {205, "B315 - SHAKESPEARE"}, {206, "A303 - HEISENBERG"},
-    {207, "A304 - LEPRINCE-RINGUET"}, {208, "A305 - SHANNON"}, {209, "A306 - PLANCK"}, {210, "A307 - EINSTEIN"},
-    {211, "A308 - SCHRODINGER"}, {212, "A314 - LANDAU"}, {213, "A315 - NEWTON"}, {214, "A316 - LANGEVIN"},
-    {215, "A401 - BELL"}, {216, "A402 - BERNOULLI"}, {217, "A403 - COULOMB"}, {218, "A404 - CURIE"},
-    {219, "A405 - MEITNER"}, {220, "A411 - BOHR"}, {222, "A412 - KELVIN"}, {223, "A413 - GALILEE"},
-    {224, "B007 - BROGLIE"}, {225, "B104 - KEPLER"}, {226, "B310 - WIENER"}, {227, "B311 - JOULE"},
-    {228, "B312 - SIEMENS"}, {229, "B314 - EDISON"}, {230, "B316 - DICKENS"}, {231, "B317 - TESLA"},
-    {232, "C205 - MARCONI"}, {233, "C206 - LAENNEC"}, {234, "C207 - KALMAN"}, {235, "D002 - JEANNETEAU"},
-    {236, "DS02 - Auditorium de l'ANJOU"}, {247, "B205 - NYQUIST"}, {252, "A401 - BELL - T1"}, {253, "A401 - BELL - T2"},
-    {254, "A402 - BERNOULLI - T1"}, {255, "A402 - BERNOULLI - T2"}, {256, "A403 - COULOMB - T1"}, {257, "A403 - COULOMB - T2"},
-    {258, "A404 - CURIE - T1"}, {259, "A404 - CURIE - T2"}, {260, "A304 - LEPRINCE-RINGUET - T1"},
-    {261, "A304 - LEPRINCE-RINGUET - T2"}, {262, "A305 - SHANNON - T1"}, {263, "A305 - SHANNON - T2"},
-    {264, "A306 - PLANCK - T1"}, {265, "A306 - PLANCK - T2"}, {266, "A307 - EINSTEIN - T1"},
-    {267, "A307 - EINSTEIN - T2"}, {268, "A308 - SCHRODINGER - T1"}, {269, "A308 - SCHRODINGER - T2"},
-    {277, "B309 - LAPLACE T2"}, {278, "B309 - LAPLACE T1"}
-};
+int indexBatiment = 0;
+int indexEtage = 0;
+int currentStartIndex = 0;   // première salle affichée (globale)
+int highlightedIndex = 0; 
 
-// URL DE L'API 
-#define TO_STR2(x) #x
-#define TO_STR(x) TO_STR2(x)
+// UID autorisé (exemple Arduino {0x06,0x35,0x23,0xD4} -> 0xD4233506)
+static const uint32_t ALLOWED_UID32 = 0xD4233506UL;
 
-#define API_URL "http://reverse-proxy.eseo.fr/API-SP/API/planning/salles/" TO_STR(SALLE_ID)
 
-// ---- Structure pour un cours ----
-struct Cours {
-    string libelle;
-    string prof;
-    string debut;
-    string fin;
-};
 
-// ---- Fonctions Wi-Fi ----
-void wifi_init_sta(void) {
-    esp_netif_init();
-    esp_event_loop_create_default();
-    esp_netif_create_default_wifi_sta();
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    esp_wifi_init(&cfg);
+// ---- Variables menu ----
+static volatile bool rfid_scanned = false;
+static volatile uint64_t scanned_serial = 0; // rempli depuis handler
 
-    wifi_config_t wifi_config = {};
-    strcpy((char *)wifi_config.sta.ssid, WIFI_SSID);
-    strcpy((char *)wifi_config.sta.password, WIFI_PASS);
+bool menuActive = false;   // menu activé après UID autorisé
+bool salleSelected = false;
 
-    esp_wifi_set_mode(WIFI_MODE_STA);
-    esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
-    esp_wifi_start();
-    ESP_LOGI(TAG, "Connexion au Wi-Fi...");
-    esp_wifi_connect();
+int menuState = 0; // 0 = choix bâtiment, 1 = choix étage, 2 = choix salle
 
-    // Attente de la connexion
-    for (int i = 0; i < 20; i++) {
-        wifi_ap_record_t ap_info;
-        if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
-            ESP_LOGI(TAG, "Wi-Fi connecté à : %s", ap_info.ssid);
-            return;
+int SALLE_ID = 207; // valeur finale
+
+// Mutex pour protéger l'état du menu
+SemaphoreHandle_t menuMutex = NULL;
+
+
+
+
+// ---- Handler RC522 : signale l'événement ----
+static void rc522_handler(void* arg, esp_event_base_t base, int32_t event_id, void* event_data)
+{
+    if(event_id != RC522_EVENT_TAG_SCANNED) return;
+    rc522_event_data_t* data = (rc522_event_data_t*) event_data;
+    rc522_tag_t* tag = (rc522_tag_t*) data->ptr;
+    scanned_serial = tag->serial_number;
+    rfid_scanned = true; // menu_task will handle
+}
+
+void planning_task(void *arg)
+{
+    while (true)
+    {
+        if (salleSelected) {
+            string response = getPlanningFromServer(SALLE_ID);
+            if (!response.empty()) {
+                string salleName;
+                vector<Cours> coursList = parsePlanning(response, salleName);
+                displayPlanning(display,salleName, coursList);
+            }
         }
-        vTaskDelay(pdMS_TO_TICKS(500));
+
+        // rafraîchir toutes les 30 secondes (ou autre)
+        vTaskDelay(pdMS_TO_TICKS(30000));
     }
-    ESP_LOGE(TAG, "Connexion Wi-Fi échouée !");
 }
 
-// ---- Téléchargement XML ----
-esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
-    switch(evt->event_id) {
-        case HTTP_EVENT_ERROR: ESP_LOGE(TAG,"HTTP_EVENT_ERROR"); break;
-        case HTTP_EVENT_ON_CONNECTED: ESP_LOGI(TAG,"HTTP_EVENT_ON_CONNECTED"); break;
-        case HTTP_EVENT_HEADER_SENT: ESP_LOGI(TAG,"HTTP_EVENT_HEADER_SENT"); break;
-        case HTTP_EVENT_ON_HEADER: ESP_LOGI(TAG,"HTTP_EVENT_ON_HEADER"); break;
-        case HTTP_EVENT_ON_DATA: ESP_LOGI(TAG,"HTTP_EVENT_ON_DATA"); break;
-        case HTTP_EVENT_ON_FINISH: ESP_LOGI(TAG,"HTTP_EVENT_ON_FINISH"); break;
-        case HTTP_EVENT_DISCONNECTED: ESP_LOGI(TAG,"HTTP_EVENT_DISCONNECTED"); break;
-        case HTTP_EVENT_REDIRECT: ESP_LOGI(TAG,"HTTP_EVENT_REDIRECT"); break; // <-- ajouté
-        default: ESP_LOGW(TAG,"HTTP_EVENT_UNKNOWN"); break; // pour attraper tout le reste
-    }
-    return ESP_OK;
+// ---- Bouton init ----
+void button_monitor_init_pin(int gpio)
+{
+    // select pad then configure input + pullup
+    esp_rom_gpio_pad_select_gpio((gpio_num_t)gpio);
+    gpio_set_direction((gpio_num_t)gpio, GPIO_MODE_INPUT);
+    gpio_set_pull_mode((gpio_num_t)gpio, GPIO_PULLUP_ONLY);
 }
 
-#include "esp_http_client.h"
-#include "esp_log.h"
+// ---- Handlers pour actions boutons (protégés par menuMutex) ----
+void handle_up_press()
+{
+    if(xSemaphoreTake(menuMutex, pdMS_TO_TICKS(100)) != pdTRUE) return;
+    if(!menuActive || salleSelected) { xSemaphoreGive(menuMutex); return; }
 
-#define TAG "EPD_PLANNING"
+    if(menuState == 0) {
+        indexBatiment = (indexBatiment - 1 + 4) % 4;
+        displayMenuBuildings(display, indexBatiment);
+    } else if(menuState == 1) {
+        indexEtage = (indexEtage - 1 + 5) % 5;
+        displayMenuEtages(display, indexEtage);
+    } else if(menuState == 2) {
+        if(highlightedIndex > 0) {
+            highlightedIndex--;
+        } else if(currentStartIndex > 0) {
+            currentStartIndex--;
+        }
+        displaySalleList(display, currentStartIndex, highlightedIndex);
+    }
+    xSemaphoreGive(menuMutex);
+}
+
+void handle_down_press()
+{
+    if(xSemaphoreTake(menuMutex, pdMS_TO_TICKS(100)) != pdTRUE) return;
+    if(!menuActive || salleSelected) { xSemaphoreGive(menuMutex); return; }
+
+    if(menuState == 0) {
+        indexBatiment = (indexBatiment + 1) % 4;
+        displayMenuBuildings(display, indexBatiment);
+    } else if(menuState == 1) {
+        indexEtage = (indexEtage + 1) % 5;
+        displayMenuEtages(display, indexEtage);
+    } else if(menuState == 2) {
+        if(highlightedIndex < 4 && (currentStartIndex + highlightedIndex + 1) < TOTAL_SALLES) {
+            highlightedIndex++;
+        } else if((currentStartIndex + 5) < TOTAL_SALLES) {
+            currentStartIndex++;
+        }
+        displaySalleList(display, currentStartIndex, highlightedIndex);
+    }
+    xSemaphoreGive(menuMutex);
+}
 
 
-// Fonction pour récupérer le planning depuis le serveur
-std::string getPlanningFromServer() {
-    std::string buffer; // Ici on va accumuler toutes les données reçues
+void handle_select_press()
+{
+    // lock menu state while we compute selection
+    if(xSemaphoreTake(menuMutex, pdMS_TO_TICKS(100)) != pdTRUE) return;
+    if(!menuActive || salleSelected) { xSemaphoreGive(menuMutex); return; }
 
-    esp_http_client_config_t config = {};
-    config.url = API_URL;
-    config.event_handler = [](esp_http_client_event_t *evt) -> esp_err_t {
-        switch(evt->event_id) {
-            case HTTP_EVENT_ON_DATA:
-                if (evt->data_len) {
-                    // Accumuler les chunks reçus
-                    std::string* resp = (std::string*)evt->user_data;
-                    resp->append((char*)evt->data, evt->data_len);
+    if(menuState == 0) {
+        menuState = 1;
+        indexEtage = 0;
+        displayMenuEtages(display, indexEtage);
+    } else if(menuState == 1) {
+        menuState = 2;
+        // initialisation liste salles (premier index de ce batiment/etage)
+        int firstIdx = -1;
+        char bat = 'A' + indexBatiment;
+        for(int i=0;i<TOTAL_SALLES;i++){
+            if(getBatiment(salles[i].name) == bat && getEtage(salles[i].name) == indexEtage){ firstIdx = i; break;}
+        }
+        if(firstIdx >= 0){
+            currentStartIndex = firstIdx;
+            highlightedIndex = 0;
+        } else {
+            currentStartIndex = 0;
+            highlightedIndex = 0;
+        }
+        displaySalleList(display, currentStartIndex, highlightedIndex);
+    } else if(menuState == 2) {
+        int selectedGlobalIndex = currentStartIndex + highlightedIndex;
+        if(selectedGlobalIndex >= 0 && selectedGlobalIndex < TOTAL_SALLES){
+            SALLE_ID = salles[selectedGlobalIndex].id;
+            salleSelected = true;
+            menuActive = false;
+            // release mutex before performing long blocking display/network ops
+            xSemaphoreGive(menuMutex);
+
+            displayClearAndTextCentered(display,140, "Salle sélectionnée !");
+            vTaskDelay(pdMS_TO_TICKS(800));
+            string response = getPlanningFromServer(SALLE_ID);
+            if(!response.empty()){
+                string salleName;
+                vector<Cours> coursList = parsePlanning(response,salleName);
+                if(!coursList.empty()) displayPlanning(display,salleName, coursList);
+                else displayClearAndTextCentered(display,140, "Planning vide ou erreur");
+                vTaskDelay(pdMS_TO_TICKS(1000));
+            } else {
+                displayClearAndTextCentered(display,140, "Erreur API ou connexion");
+                vTaskDelay(pdMS_TO_TICKS(1000));
+            }            
+        }
+    }
+    xSemaphoreGive(menuMutex);
+}
+
+
+void handle_back_press()
+{
+    if(xSemaphoreTake(menuMutex, pdMS_TO_TICKS(100)) != pdTRUE) return;
+
+    // Si tu es en planning : retour impossible (retour = RFID)
+    if(!menuActive) {
+        xSemaphoreGive(menuMutex);
+        return;
+    }
+
+    // ↩ Retour depuis Salles → Étages
+    if(menuState == 2) {
+        menuState = 1;
+        displayMenuEtages(display, indexEtage);
+    }
+    // ↩ Retour depuis Étages → Bâtiments
+    else if(menuState == 1) {
+        menuState = 0;
+        displayMenuBuildings(display, indexBatiment);
+    }
+    // ↩ Retour depuis Bâtiments → Mode maintenance
+    else if(menuState == 0) {
+        menuActive = false;
+        salleSelected = false;
+        displayMaintenanceMode(display);
+    }
+
+    xSemaphoreGive(menuMutex);
+}
+
+// ---- Single buttons task (prévents race conditions) ----
+void buttons_task(void *arg) {
+    // init pins
+    button_monitor_init_pin(BUTTON_UP_PIN);
+    button_monitor_init_pin(BUTTON_DOWN_PIN);
+    button_monitor_init_pin(BUTTON_SELECT_PIN);
+    button_monitor_init_pin(BUTTON_BACK_PIN);
+
+    int lastUp = 1, lastDown = 1, lastSel = 1, lastBack = 1;
+
+    while(true) {
+        int up = gpio_get_level((gpio_num_t)BUTTON_UP_PIN);
+        int down = gpio_get_level((gpio_num_t)BUTTON_DOWN_PIN);
+        int sel = gpio_get_level((gpio_num_t)BUTTON_SELECT_PIN);
+        int back = gpio_get_level((gpio_num_t)BUTTON_BACK_PIN);
+
+        // only act if menuActive and not salleSelected (handlers check too)
+        if(up == 0 && lastUp == 1) {
+            // basic debounce: wait small time and confirm still pressed
+            vTaskDelay(pdMS_TO_TICKS(20));
+            if(gpio_get_level((gpio_num_t)BUTTON_UP_PIN) == 0) {
+                handle_up_press();
+                // wait release
+                while(gpio_get_level((gpio_num_t)BUTTON_UP_PIN) == 0) vTaskDelay(pdMS_TO_TICKS(10));
+                vTaskDelay(pdMS_TO_TICKS(40));
+            }
+        }
+
+        if(down == 0 && lastDown == 1) {
+            vTaskDelay(pdMS_TO_TICKS(20));
+            if(gpio_get_level((gpio_num_t)BUTTON_DOWN_PIN) == 0) {
+                handle_down_press();
+                while(gpio_get_level((gpio_num_t)BUTTON_DOWN_PIN) == 0) vTaskDelay(pdMS_TO_TICKS(10));
+                vTaskDelay(pdMS_TO_TICKS(40));
+            }
+        }
+
+        if(sel == 0 && lastSel == 1) {
+            vTaskDelay(pdMS_TO_TICKS(20));
+            if(gpio_get_level((gpio_num_t)BUTTON_SELECT_PIN) == 0) {
+                handle_select_press();
+                while(gpio_get_level((gpio_num_t)BUTTON_SELECT_PIN) == 0) vTaskDelay(pdMS_TO_TICKS(10));
+                vTaskDelay(pdMS_TO_TICKS(40));
+            }
+        }
+
+        if(back == 0 && lastBack == 1) {
+            vTaskDelay(pdMS_TO_TICKS(20));
+            if(gpio_get_level((gpio_num_t)BUTTON_BACK_PIN) == 0) {
+                handle_back_press();
+                while(gpio_get_level((gpio_num_t)BUTTON_BACK_PIN) == 0) vTaskDelay(pdMS_TO_TICKS(10));
+                vTaskDelay(pdMS_TO_TICKS(40));
+            }
+        }
+
+        lastUp = up; lastDown = down; lastSel = sel; lastBack = back;
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
+}
+
+
+// ---- Menu manager task: traite l'événement RFID scanné ----
+void menu_task(void *arg) {
+    while(true){
+          if (rfid_scanned && !menuActive && salleSelected) {
+            salleSelected = false;      // on arrête l'affichage continu de planning
+            // On NE reset PAS tout ici — on laisse le if suivant gérer l'ouverture du menu
+        }
+                if(rfid_scanned && !menuActive){
+                    uint64_t serial = scanned_serial;
+                    rfid_scanned = false;
+
+                    uint32_t low32 = (uint32_t)(serial & 0xFFFFFFFFULL);
+                    ESP_LOGI(TAG, "Tag scanned serial=%" PRIu64 " low32=0x%" PRIX32, serial, low32);
+
+                    if(xSemaphoreTake(menuMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+                        ESP_LOGI(TAG, "Tag scanné, activation menu");
+                        menuActive = true;
+                        menuState = 0;
+                        indexBatiment = 0;
+                        indexEtage = 0;
+                        currentStartIndex = 0;
+                        highlightedIndex = 0;
+                        xSemaphoreGive(menuMutex);
+                        displayMenuBuildings(display, indexBatiment);
+                    }
                 }
-                break;
-            case HTTP_EVENT_ERROR:
-                ESP_LOGE(TAG, "HTTP_EVENT_ERROR");
-                break;
-            case HTTP_EVENT_ON_CONNECTED:
-                ESP_LOGI(TAG, "HTTP_EVENT_ON_CONNECTED");
-                break;
-            case HTTP_EVENT_HEADER_SENT:
-                ESP_LOGI(TAG, "HTTP_EVENT_HEADER_SENT");
-                break;
-            case HTTP_EVENT_ON_HEADER:
-                ESP_LOGI(TAG, "HTTP_EVENT_ON_HEADER");
-                break;
-            case HTTP_EVENT_ON_FINISH:
-                ESP_LOGI(TAG, "HTTP_EVENT_ON_FINISH");
-                break;
-            case HTTP_EVENT_DISCONNECTED:
-                ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
-                break;
-            default:
-                break;
-        }
-        return ESP_OK;
-    };
-    config.user_data = &buffer;
-
-    esp_http_client_handle_t client = esp_http_client_init(&config);
-
-    esp_err_t err = esp_http_client_perform(client);
-    if(err != ESP_OK) {
-        ESP_LOGE(TAG, "Erreur HTTP : %s", esp_err_to_name(err));
-        buffer.clear(); // Pas de données si erreur
-    } else {
-        ESP_LOGI(TAG, "HTTP OK, taille des données: %d", buffer.length());
-        ESP_LOGI(TAG, "Réponse: %s", buffer.c_str()); // Affiche le JSON reçu
+                vTaskDelay(pdMS_TO_TICKS(100));
     }
-
-    esp_http_client_cleanup(client);
-    return buffer;
 }
 
-// ---- Parsing XML ----
-#include "cJSON.h"
-
-vector<Cours> parsePlanning(const std::string &jsonStr, std::string &salle) {
-    vector<Cours> coursList;
-
-    cJSON *root = cJSON_Parse(jsonStr.c_str());
-    if (!root) {
-        ESP_LOGE(TAG, "Erreur parsing JSON");
-        return coursList;
-    }
-
-    cJSON *salleItem = cJSON_GetObjectItem(root, "Salle");
-    salle = (salleItem && cJSON_IsString(salleItem)) ? salleItem->valuestring : "Inconnue";
-
-    cJSON *lesCours = cJSON_GetObjectItem(root, "LesCours");
-    if (lesCours && cJSON_IsArray(lesCours)) {
-        int count = cJSON_GetArraySize(lesCours);
-        for (int i = 0; i < count; i++) {
-            cJSON *item = cJSON_GetArrayItem(lesCours, i);
-            Cours c;
-            c.debut = cJSON_GetObjectItem(item, "Debut")->valuestring;
-            c.fin = cJSON_GetObjectItem(item, "Fin")->valuestring;
-            c.libelle = cJSON_GetObjectItem(item, "Libelle")->valuestring;
-            c.prof = cJSON_GetObjectItem(item, "Professeurs")->valuestring;
-            coursList.push_back(c);
-        }
-    }
-
-    cJSON_Delete(root);
-    return coursList;
-}
-
-//extraire l'heure du fichier xml au format "HH:MM"
-std::string extractHour(const std::string &datetime) {
-    size_t pos = datetime.find('T');
-    if (pos == std::string::npos || pos + 6 > datetime.size()) return "";
-    return datetime.substr(pos + 1, 5); // "17:00"  
-}
-
-//chercher à couper le texte si trop long 
-std::string wrapSimple(const std::string &txt) { 
-    size_t cut = txt.rfind(' '); 
-    if (cut == std::string::npos) 
-    return txt; // aucun espace → pas de wrap 
-    return txt.substr(0, cut) + "\n" + txt.substr(cut + 1); 
-}
-
-// ---- Affichage e-paper ----
-void displayPlanning(const string &salle, const vector<Cours> &coursList) {
-    display.fillScreen(EPD_WHITE);
-    display.setTextColor(EPD_BLACK);
-
-    // Taille écran Gdew042t2
-    const int W = 400;
-    const int H = 300;
-
-    // ---- TITRE : salle ----
-    display.setTextSize(2);
-    std::string titre = salle;
-    // Mesurer largeur du texte
-    int16_t x1, y1;
-    uint16_t w, h;
-    display.getTextBounds(titre.c_str(), 0, 0, &x1, &y1, &w, &h);
-    // Centrage horizontal (400 px = largeur écran)
-    int x_center = (400 - w) / 2;
-    int y = 25;
-    display.setCursor(x_center, y);
-    display.println(titre); 
-
-    // ---- Cadre principal ----
-    int top = 50; //Espace pour le titre
-    int margin = 10;
-    int frameH = H - top - margin;
-    //int half = frameH / 2;
-    int third = top + int(0.35 * frameH);
-
-    // Rectangle total
-    display.drawRect(margin, top, W - 2*margin, frameH, EPD_BLACK);
-
-    // Ligne au milieu
-    display.drawLine(margin, top + third, W - margin, top + third, EPD_BLACK);
-   
-    // ---- Contenu des cadres de cours ----
-    display.setTextSize(2);
-
-    // Fonction lambda pour centrer du texte
-    auto printCentered = [&](const std::string &text, int y) {
-    int16_t x1, y1;
-    uint16_t w, h;
-    display.getTextBounds(text.c_str(), 0, 0, &x1, &y1, &w, &h);
-    int x_center = (400 - w) / 2;
-    display.setCursor(x_center, y);
-    display.println(text.c_str());
-    };
-
-    // Cours actuel = index 0
-    if (coursList.size() >= 1) {
-        const Cours& c = coursList[0];
-        std::string hDebut = extractHour(c.debut);
-        std::string hFin   = extractHour(c.fin);
-
-        std::string libelleClean = removeAccents(c.libelle);
-        std::string profClean    = removeAccents(c.prof);
-
-        int x = margin + 10;
-        int y = top + 5;
-
-        printCentered("COURS ACTUEL:", y);
-       
-        // ---- Nom du cours sur 2 lignes ----
-        std::string wrapped = wrapSimple(libelleClean);
-        std::vector<std::string> lines;
-        size_t pos = 0;
-        size_t next;
-        while ((next = wrapped.find('\n', pos)) != std::string::npos) {
-            lines.push_back(wrapped.substr(pos, next - pos));
-            pos = next + 1;
-        }
-        lines.push_back(wrapped.substr(pos));
-
-        // Affichage du cours centré
-        int yText = y + 25;
-        for (const auto &line : lines) {
-            printCentered(line, yText);
-            yText += 25; // espacement vertical entre lignes du cours
-        }
-
-        // ---- Nom du professeur centré ----
-        yText += 5; // petit espace après le cours
-        printCentered(profClean, yText);
-
-        // ---- Heures ----
-        display.setCursor(x, yText + 30);
-        display.println(hDebut.c_str());
-        display.setCursor(W - margin - 70, yText + 30);
-        display.println(hFin.c_str());  
-    }
-
-    // Cours suivant = index 1
-    if (coursList.size() >= 2) {
-        const Cours& c = coursList[1];
-        std::string hDebut = extractHour(c.debut);
-        std::string hFin   = extractHour(c.fin);
-
-        std::string libelleClean = removeAccents(c.libelle);
-        std::string profClean    = removeAccents(c.prof);
-
-        int x = margin + 10;
-        int y = top + third + 5;
-
-        printCentered("COURS SUIVANT:", y);
-       
-        // ---- Nom du cours sur 2 lignes ----
-        std::string wrapped = wrapSimple(libelleClean);
-        std::vector<std::string> lines;
-        size_t pos = 0;
-        size_t next;
-        while ((next = wrapped.find('\n', pos)) != std::string::npos) {
-            lines.push_back(wrapped.substr(pos, next - pos));
-            pos = next + 1;
-        }
-        lines.push_back(wrapped.substr(pos));
-
-        // Affichage du cours centré
-        int yText = y + 25;
-        for (const auto &line : lines) {
-            printCentered(line, yText);
-            yText += 25; // espacement vertical entre lignes du cours
-        }
-
-          // ---- Heures ----
-        display.setCursor(x, yText + 5);
-        display.println(hDebut.c_str());
-        display.setCursor(W - margin - 70, yText + 5);
-        display.println(hFin.c_str());
-    }
-
-    display.update();
-}
-
-
-// ---- Main ----
+// ---- app_main ----
 extern "C" void app_main(void) {
     ESP_LOGI(TAG, "Initialisation...");
 
     nvs_flash_init();
     wifi_init_sta();
-
     esp_task_wdt_deinit();
     display.init();
-    display.fillScreen(EPD_WHITE);
+
+    // Affichage initial
+    displayMaintenanceMode(display);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    // create mutex
+    menuMutex = xSemaphoreCreateMutex();
+    if(menuMutex == NULL) {
+        ESP_LOGE(TAG, "Impossible de créer menuMutex");
+        // continue but behavior unsafe; ideally handle error
+    }
+
+    // Créer la task menu (gère l'activation suite au scan)
+    xTaskCreate(menu_task, "menu_task", 4096, NULL, 6, NULL);
+
+    // Création d'une seule tâche boutons (évite race conditions)
+    xTaskCreate(buttons_task, "buttons_task", 4096, NULL, 5, NULL);
+
+    // Création tâche planning (récupération et affichage périodique)
+    xTaskCreate(planning_task, "planning_task", 4096, NULL, 5, NULL);
+
+    // Initialisation RC522 (après affichage de départ pour éviter override)
+    rc522_config_t config = {};
+    config.scan_interval_ms = RC522_DEFAULT_SCAN_INTERVAL_MS;
+    config.task_stack_size = RC522_DEFAULT_TASK_STACK_SIZE;
+    config.task_priority   = RC522_DEFAULT_TASK_STACK_PRIORITY;
+    config.transport = RC522_TRANSPORT_SPI;
+    config.spi.host = VSPI_HOST;
+    config.spi.miso_gpio = 19;
+    config.spi.mosi_gpio = 23;
+    config.spi.sck_gpio  = 18;
+    config.spi.sda_gpio  = 5;
+    config.spi.clock_speed_hz = RC522_DEFAULT_SPI_CLOCK_SPEED_HZ;
+    config.spi.device_flags   = SPI_DEVICE_HALFDUPLEX;
+    if(rc522_create(&config, &scanner) != ESP_OK){
+        ESP_LOGE(TAG, "Erreur creation RC522");
+    } else {
+        rc522_register_events(scanner, RC522_EVENT_ANY, rc522_handler, NULL);
+        rc522_start(scanner);
+    }
 
     while(true) {
-        string response = getPlanningFromServer();
-        if(response.empty()) {
-            ESP_LOGE(TAG, "Aucune donnée reçue ou erreur HTTP");
-            display.fillScreen(EPD_WHITE);
-            display.setCursor(10,40);
-            display.setTextSize(2);
-            display.println("Erreur API ou connexion");
-            display.update();
-        } else {
-            string salle;
-            vector<Cours> coursList = parsePlanning(response, salle);
-            if(coursList.empty()) {
-                display.fillScreen(EPD_WHITE);
-                display.setCursor(10,40);
-                display.setTextSize(2);
-                display.println("Planning vide ou XML invalide");
-                display.update();
-            } else {
-                displayPlanning(salle, coursList);
-            }
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(300000)); // 5 minutes
+        vTaskDelay(pdMS_TO_TICKS(10000));
     }
 }
-
