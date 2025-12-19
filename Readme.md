@@ -112,6 +112,8 @@ Le projet utilise plusieurs composants électroniques pour afficher les planning
 | BACK     | 16        |
 | SELECT   | 17        |
 
+![Schéma de connexion](1.png)
+
 
 
 
