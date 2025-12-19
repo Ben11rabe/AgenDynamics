@@ -81,8 +81,7 @@ Le projet utilise plusieurs composants électroniques pour afficher les planning
 
 ## Tableau récapitulatif pour l'écran E-Paper 4.2inch
 
-| Interface | Pin ESP32 | Composant | Pin pour le   |
-|           |           |E-paper 4.2|    E-paper    |
+| Interface | Pin ESP32 |SPI E-paper| Pin E-Paper   |
 |-----------|-----------|-----------|---------------|
 | HSPI      | CLK 14    | CLK (SCLK)| 14            |
 | HSPI      | MISO 12   | -         | -             |
@@ -95,8 +94,7 @@ Le projet utilise plusieurs composants électroniques pour afficher les planning
 
 ## Tableau récapitulatif pour le capteur NFC RC522
 
-| Interface | Pin ESP32 | Composant choisi| Pin pour le      |
-|           |           |   RC522 reader  |  RC522 reader    |
+| Interface | Pin ESP32 | SPI RC522 reader| Pin RC522 reader |
 |-----------|-----------|-----------------|------------------|
 | VSPI      | CLK 18    | SCK (SCLK/CLK)  | 18               |
 | VSPI      | MISO 19   | MISO            | 19               |
@@ -113,6 +111,7 @@ Le projet utilise plusieurs composants électroniques pour afficher les planning
 | DOWN     | 25        |
 | BACK     | 16        |
 | SELECT   | 17        |
+
 
 
 
