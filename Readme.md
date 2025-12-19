@@ -41,7 +41,8 @@ Dans l’ordre de priorité :
 - Écran E-ink 6 pouces avec interface parallèle.  
 - Réduction des coûts de 34 %.  
 - Changements significatifs dans la mise en œuvre.  
-- Convertisseur 24 V CC/CC amélioré.
+- Convertisseur 24 V DC/DC amélioré.
+
 
 
 
