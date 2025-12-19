@@ -118,7 +118,7 @@ Le projet utilise plusieurs composants électroniques pour afficher les planning
   <img src="1.jpeg" alt="Schéma de connexion">
 </p>
 
-## Software et Architecture
+# Software et Architecture
 
 Le code du projet est organisé de manière modulaire pour faciliter la maintenance et la compréhension.  
 Le dossier principal `main` contient le fichier `main.cpp`, qui lance l’ensemble du projet grâce à la fonction `app_main`.  
@@ -127,7 +127,7 @@ Autour de ce fichier, plusieurs sous-dossiers ont été créés pour séparer le
 
 Le schéma global permet à chaque module d’interagir avec `main.cpp`, qui orchestre le fonctionnement du système.
 
-# Vue d'ensemble des sous-dossiers du projet
+## Vue d'ensemble des sous-dossiers du projet
 
 | Sous-dossier | Description / Contenu |
 |--------------|----------------------|
@@ -139,6 +139,7 @@ Le schéma global permet à chaque module d’interagir avec `main.cpp`, qui orc
 | planning     | Gère la récupération et l’affichage des plannings des salles. Contient la fonction `getPlanningFromServer` pour récupérer les données via HTTP, `parsePlanning` pour parser le JSON, `displayPlanning` pour afficher les cours sur l’écran, et la tâche `planning_task` qui met à jour périodiquement l’affichage. |
 | rc522        | Gestion du lecteur RFID MFRC522. Fournit l’interface pour initialiser (`rc522_create`), démarrer (`rc522_start`) et arrêter (`rc522_pause`) le scan de tags, lire les cartes (`rc522_get_tag`), calculer le CRC et dispatcher les événements de tag scanné (`rc522_dispatch_event`). Le code supporte SPI et I2C et utilise une tâche FreeRTOS pour le scan continu des tags. |
 | wifi         | Gestion de la connexion Wi-Fi en mode station. Initialise le périphérique réseau, configure le SSID/mot de passe (`WIFI_SSID` / `WIFI_PASS`) et tente de se connecter. Utilise la boucle FreeRTOS pour attendre la connexion avec logs ESP. Fonction principale : `wifi_init_sta()`. |
+
 
 
 
