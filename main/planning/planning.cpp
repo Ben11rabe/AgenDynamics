@@ -142,8 +142,8 @@ void displayPlanning(Gdew042t2 &display, const std::string &salle, const std::ve
         printCentered(wrapped.substr(pos), yText); yText += 25;
         printCentered(prof, yText);
 
-        display.setCursor(margin + 10, yText + 30); display.println(hDebut.c_str());
-        display.setCursor(W - margin - 70, yText + 30); display.println(hFin.c_str());
+        display.setCursor(margin + 10, yText + 5); display.println(hDebut.c_str());
+        display.setCursor(W - margin - 70, yText + 5); display.println(hFin.c_str());
     }
 
     // Afficher le cours suivant (si disponible)
@@ -167,8 +167,8 @@ void displayPlanning(Gdew042t2 &display, const std::string &salle, const std::ve
         }
         printCentered(wrapped.substr(pos), yText); yText += 25;
 
-        display.setCursor(margin + 10, yText + 5); display.println(hDebut.c_str());
-        display.setCursor(W - margin - 70, yText + 5); display.println(hFin.c_str());
+        display.setCursor(margin + 10, yText - 15); display.println(hDebut.c_str());
+        display.setCursor(W - margin - 70, yText - 15); display.println(hFin.c_str());
     }
 
     // Mettre à jour l'affichage
@@ -190,6 +190,6 @@ void planning_task(void *arg)
         }
 
         // rafraîchir toutes les 30 secondes (ou autre)
-        vTaskDelay(pdMS_TO_TICKS(30000));
+        vTaskDelay(pdMS_TO_TICKS(18000000));
     }
 }

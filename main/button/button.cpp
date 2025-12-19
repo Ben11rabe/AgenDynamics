@@ -111,8 +111,8 @@ void handle_select_press()
             // release mutex before performing long blocking display/network ops
             xSemaphoreGive(menuMutex);
 
-            displayClearAndTextCentered(display,140, "Salle sélectionnée !");
-            vTaskDelay(pdMS_TO_TICKS(800));
+            displayClearAndTextCentered(display,140, "Salle selectionnee,\n en cours de chargement...");
+            vTaskDelay(pdMS_TO_TICKS(1000));
             string response = getPlanningFromServer(SALLE_ID);
             if(!response.empty()){
                 string salleName;
