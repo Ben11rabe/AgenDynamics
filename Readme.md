@@ -141,6 +141,33 @@ Le schéma global permet à chaque module d’interagir avec `main.cpp`, qui orc
 | wifi         | Gestion de la connexion Wi-Fi en mode station. Initialise le périphérique réseau, configure le SSID/mot de passe (`WIFI_SSID` / `WIFI_PASS`) et tente de se connecter. Utilise la boucle FreeRTOS pour attendre la connexion avec logs ESP. Fonction principale : `wifi_init_sta()`. |
 
 
+# Résultats et Démonstration
+
+Le fonctionnement actuel du système se déroule en plusieurs étapes :
+
+1. **Affichage d’introduction** : L’écran affiche un message d’attente en attendant qu’un tag RFID autorisé soit scanné.
+2. **Liste des bâtiments** : L’utilisateur choisit le bâtiment parmi les options proposées.
+3. **Liste des étages** : Une fois le bâtiment choisi, l’utilisateur sélectionne l’étage désiré.
+4. **Liste des salles associées** : L’utilisateur choisit la salle correspondant à l’étage et au bâtiment sélectionnés.
+5. **Temps de chargement** : Le système récupère le planning correspondant depuis le serveur.
+6. **Affichage du planning** : Le planning de la salle sélectionnée s’affiche à l’écran.
+
+---
+
+Voici le déroulement visuel de l’interface : 
+
+### Étapes 1 à 3
+
+| ![Introduction](intro.HEIC) | → | ![Liste Bâtiments](batiment.HEIC) | → | ![Liste Étages](etage.HEIC) |
+|---------------------------------|---|---------------------------------|---|---------------------------------|
+| Attente du scan du tag           |   | Choix du bâtiment              |   | Choix de l’étage               |
+
+
+### Étapes 4 à 6
+
+| ![Liste Salles](salles.HEIC) | → | ![Chargement](chargement.HEIC) | → | ![Planning](affichage.HEIC) |
+|---------------------------------|---|---------------------------------|---|---------------------------------|
+| Sélection de la salle           |   | Laps de chargement              |   | Affichage du planning          |
 
 
 
