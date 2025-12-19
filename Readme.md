@@ -118,6 +118,15 @@ Le projet utilise plusieurs composants électroniques pour afficher les planning
   <img src="1.jpeg" alt="Schéma de connexion">
 </p>
 
+## Software et Architecture
+
+Le code du projet est organisé de manière modulaire pour faciliter la maintenance et la compréhension.  
+Le dossier principal `main` contient le fichier `main.cpp`, qui lance l’ensemble du projet grâce à la fonction `app_main`.  
+
+Autour de ce fichier, plusieurs sous-dossiers ont été créés pour séparer les différentes fonctionnalités : `accents`, `button`, `data`, `display`, `menu`, `planning`, `rc522` et `wifi`.  
+
+Le schéma global permet à chaque module d’interagir avec `main.cpp`, qui orchestre le fonctionnement du système.
+
 
 
 
