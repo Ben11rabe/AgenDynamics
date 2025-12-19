@@ -115,8 +115,9 @@ Le projet utilise plusieurs composants électroniques pour afficher les planning
 ## Schéma de connexion
 
 <p align="center">
-  <img src="1.png" alt="Schéma de connexion">
+  <img src="1.jpeg" alt="Schéma de connexion">
 </p>
+
 
 
 
