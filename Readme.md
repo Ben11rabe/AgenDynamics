@@ -158,16 +158,17 @@ Voici le déroulement visuel de l’interface :
 
 ### Étapes 1 à 3
 
-| ![Introduction](intro.HEIC) | → | ![Liste Bâtiments](batiment.HEIC) | → | ![Liste Étages](etage.HEIC) |
+| ![Introduction](intro.png) | → | ![Liste Bâtiments](batiment.png) | → | ![Liste Étages](etage.png) |
 |---------------------------------|---|---------------------------------|---|---------------------------------|
 | Attente du scan du tag           |   | Choix du bâtiment              |   | Choix de l’étage               |
 
 
 ### Étapes 4 à 6
 
-| ![Liste Salles](salles.HEIC) | → | ![Chargement](chargement.HEIC) | → | ![Planning](affichage.HEIC) |
+| ![Liste Salles](salles.png) | → | ![Chargement](chargement.png) | → | ![Planning](affichage.png) |
 |---------------------------------|---|---------------------------------|---|---------------------------------|
 | Sélection de la salle           |   | Laps de chargement              |   | Affichage du planning          |
+
 
 
 
