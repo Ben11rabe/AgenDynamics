@@ -7,6 +7,7 @@
 #include "epdspi.h"
 #include "accents/remove_accents.h"
 using std::vector;
+using std::string;
 
 static const char *TAG = "EPD_PLANNING";
 
@@ -64,25 +65,131 @@ vector<Cours> parsePlanning(const std::string &jsonStr, std::string &salle) {
     return coursList;
 }
 
-void displayPlanning(Gdew042t2 &display, const std::string &salle, const std::vector<Cours> &coursList) {
-    display.fillScreen(EPD_WHITE);
-    display.setTextSize(2);
-    display.setTextColor(EPD_BLACK);
-    display.setCursor(10, 10);
-    std::string title = "Planning: " + salle;
-    display.println(title.c_str());
-    int y = 40;
-    display.setTextSize(1);
-    for (const auto &c : coursList) {
-        if (y > 280) break; // éviter overflow
-        std::string line1 = c.debut + " - " + c.fin + ": " + removeAccents(c.libelle);
-        display.setCursor(10, y);
-        display.println(line1.c_str());
-        y += 12;
-        std::string line2 = "Prof: " + removeAccents(c.prof);
-        display.setCursor(20, y);
-        display.println(line2.c_str());
-        y += 16;
+// extractHour : extrait l'heure au format HH:MM depuis "YYYY-MM-DD HH:MM:SS"
+std::string extractHour(const std::string &datetime) {
+    if (datetime.size() >= 16) {
+        return datetime.substr(11, 5);
     }
+    return datetime;
+}
+
+// wrapSimple : découpe le texte en lignes de longueur max lineLength
+std::string wrapSimple(const std::string &text, size_t lineLength = 25) {
+    std::string result;
+    size_t pos = 0;
+    while (pos < text.size()) {
+        size_t len = std::min(lineLength, text.size() - pos);
+        result += text.substr(pos, len) + '\n';
+        pos += len;
+    }
+    return result;
+}
+
+void displayPlanning(Gdew042t2 &display, const std::string &salle, const std::vector<Cours> &coursList) {
+    // Nettoyer l'écran
+    display.fillScreen(EPD_WHITE);
+    display.setTextColor(EPD_BLACK);
+    display.setTextSize(2);
+
+    // Dimensions de l'écran
+    const int W = 400;
+    const int H = 300;
+
+    // Centrer le titre
+    int16_t x1, y1;
+    uint16_t w, h;
+    display.getTextBounds(salle.c_str(), 0, 0, &x1, &y1, &w, &h);
+    display.setCursor((W - w) / 2, 20);
+    display.println(salle.c_str());
+
+    // Paramètres de cadre
+    int top = 50;
+    int margin = 10;
+    int frameH = H - top - margin;
+    int third = top + int(0.35 * frameH);
+
+    // Dessiner le cadre et la ligne séparatrice
+    display.drawRect(margin, top, W - 2 * margin, frameH, EPD_BLACK);
+    display.drawLine(margin, top + third, W - margin, top + third, EPD_BLACK);
+
+    // Fonction lambda pour centrer du texte
+    auto printCentered = [&](const std::string &text, int y){
+        int16_t x1, y1; uint16_t w, h;
+        display.getTextBounds(text.c_str(), 0, 0, &x1, &y1, &w, &h);
+        display.setCursor((W - w) / 2, y);
+        display.println(text.c_str());
+    };
+
+    // Afficher le cours actuel (si disponible)
+    if (coursList.size() >= 1) {
+        const Cours &c = coursList[0];
+        std::string hDebut = extractHour(c.debut);
+        std::string hFin = extractHour(c.fin);
+        std::string lib = removeAccents(c.libelle);
+        std::string prof = removeAccents(c.prof);
+
+        int y = top + 5;
+        printCentered("COURS ACTUEL:", y);
+
+        std::string wrapped = wrapSimple(lib);
+        int yText = y + 25;
+        size_t pos = 0, next;
+        while ((next = wrapped.find('\n', pos)) != std::string::npos) {
+            printCentered(wrapped.substr(pos, next - pos), yText);
+            yText += 25;
+            pos = next + 1;
+        }
+        printCentered(wrapped.substr(pos), yText); yText += 25;
+        printCentered(prof, yText);
+
+        display.setCursor(margin + 10, yText + 30); display.println(hDebut.c_str());
+        display.setCursor(W - margin - 70, yText + 30); display.println(hFin.c_str());
+    }
+
+    // Afficher le cours suivant (si disponible)
+    if (coursList.size() >= 2) {
+        const Cours &c = coursList[1];
+        std::string hDebut = extractHour(c.debut);
+        std::string hFin = extractHour(c.fin);
+        std::string lib = removeAccents(c.libelle);
+        std::string prof = removeAccents(c.prof);
+
+        int y = top + third + 5;
+        printCentered("COURS SUIVANT:", y);
+
+        std::string wrapped = wrapSimple(lib);
+        int yText = y + 25;
+        size_t pos = 0, next;
+        while ((next = wrapped.find('\n', pos)) != std::string::npos) {
+            printCentered(wrapped.substr(pos, next - pos), yText);
+            yText += 25;
+            pos = next + 1;
+        }
+        printCentered(wrapped.substr(pos), yText); yText += 25;
+
+        display.setCursor(margin + 10, yText + 5); display.println(hDebut.c_str());
+        display.setCursor(W - margin - 70, yText + 5); display.println(hFin.c_str());
+    }
+
+    // Mettre à jour l'affichage
     display.update();
+}
+
+
+void planning_task(void *arg)
+{
+    while (true)
+    {
+        if (salleSelected) {
+            string response = getPlanningFromServer(SALLE_ID);
+            if (!response.empty()) {
+                string salleName;
+                vector<Cours> coursList = parsePlanning(response, salleName);
+                displayPlanning(display,salleName, coursList);
+            }
+        }
+
+        // rafraîchir toutes les 30 secondes (ou autre)
+        vTaskDelay(pdMS_TO_TICKS(30000));
+    }
 }

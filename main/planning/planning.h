@@ -2,6 +2,16 @@
 //#include "gdew042t2.h"
 #include <string>
 #include <vector>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "display/display.h"
+#include "planning/planning.h"
+
+extern volatile bool salleSelected;
+extern int SALLE_ID;
+extern Gdew042t2 display;
+
+void planning_task(void *arg);
 
 struct Cours{
     std::string libelle;
