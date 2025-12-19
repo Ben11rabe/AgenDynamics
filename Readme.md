@@ -112,7 +112,13 @@ Le projet utilise plusieurs composants électroniques pour afficher les planning
 | BACK     | 16        |
 | SELECT   | 17        |
 
-![Schéma de connexion](1.png)
+## Schéma de connexion
+
+<p align="center">
+  <img src="1.png" alt="Schéma de connexion">
+</p>
+
+
 
 
 
