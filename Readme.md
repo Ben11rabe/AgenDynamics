@@ -127,6 +127,21 @@ Autour de ce fichier, plusieurs sous-dossiers ont été créés pour séparer le
 
 Le schéma global permet à chaque module d’interagir avec `main.cpp`, qui orchestre le fonctionnement du système.
 
+# Vue d'ensemble des sous-dossiers du projet
+
+| Sous-dossier | Description / Contenu |
+|--------------|----------------------|
+| accents      | Contient la fonction `removeAccents` qui supprime les accents d’une chaîne de caractères UTF-8, utile pour normaliser les noms de salles ou bâtiments avant affichage. |
+| button       | Contient la gestion des boutons pour naviguer dans les menus (Haut, Bas, Sélection, Retour). Les handlers principaux sont `handle_up_press`, `handle_down_press`, `handle_select_press` et `handle_back_press`. Le fichier gère aussi la tâche `buttons_task` qui lit les boutons avec anti-rebond et mutex pour éviter les conflits. |
+| data         | Contient les informations sur toutes les salles de l’ESEO (`salles.h`) avec leurs identifiants et noms. Fournit des fonctions utilitaires comme `getBatiment`, `getEtage`, `nombreDeSalles`, `getSalleIndex` et `clampIndex` pour récupérer les informations d’une salle selon le bâtiment, l’étage ou l’index. |
+| display      | Gère tout l’affichage sur l’écran e-paper (menus, sélection de bâtiment/étage/salle, mode maintenance, messages). Contient des fonctions comme `displayClearAndTextCentered`, `displayMaintenanceMode`, `displayMenuBuildings`, `displayMenuEtages` et `displaySalleList` pour dessiner le contenu à l’écran. |
+| menu         | Gère la logique du menu et le traitement des événements RFID. Contient la tâche `menu_task` qui active le menu lorsqu’un tag autorisé est scanné et le handler `rc522_handler` qui signale l’événement RFID. |
+| planning     | Gère la récupération et l’affichage des plannings des salles. Contient la fonction `getPlanningFromServer` pour récupérer les données via HTTP, `parsePlanning` pour parser le JSON, `displayPlanning` pour afficher les cours sur l’écran, et la tâche `planning_task` qui met à jour périodiquement l’affichage. |
+| rc522        | Gestion du lecteur RFID MFRC522. Fournit l’interface pour initialiser (`rc522_create`), démarrer (`rc522_start`) et arrêter (`rc522_pause`) le scan de tags, lire les cartes (`rc522_get_tag`), calculer le CRC et dispatcher les événements de tag scanné (`rc522_dispatch_event`). Le code supporte SPI et I2C et utilise une tâche FreeRTOS pour le scan continu des tags. |
+| wifi         | Gestion de la connexion Wi-Fi en mode station. Initialise le périphérique réseau, configure le SSID/mot de passe (`WIFI_SSID` / `WIFI_PASS`) et tente de se connecter. Utilise la boucle FreeRTOS pour attendre la connexion avec logs ESP. Fonction principale : `wifi_init_sta()`. |
+
+
+
 
 
 
