@@ -46,3 +46,78 @@ Dans l’ordre de priorité :
 
 
 
+# Matériel / Hardware
+
+## Introduction
+Le projet utilise plusieurs composants électroniques pour afficher les plannings des salles de l’ESEO et gérer le mode maintenance.  
+**Remarque importante** : le nouvel écran 6 pouces (6ink) n'a pas encore été testé car nous n'avons pas le PCB associé. Les pins décrites ci-dessous concernent l'ancien écran e-paper 4.2 pouces.
+
+## Composants
+
+### 1. ESP32
+- **Modèle** : Devkit  
+- **Rôle** : Cerveau du projet, exécute le code et gère la communication avec tous les périphériques.
+
+### 2. Écran e-paper actuel
+- **Modèle** : 4.2 pouces e-paper module  
+- **Protocole** : SPI  
+- **Fonction** : Affichage du planning des salles et de la partie maintenance pour le choix de la salle.
+
+### 3. Nouvel écran 6ink (non testé)
+- **Modèle** : ED060SC4, écran Kindle 2  
+- **Protocole prévu** : SPI  
+- **Fonction prévue** : Affichage plus grand pour les plannings. Le driver est réalisé sur PCB séparé.  
+- **Remarque** : Comme seule la dalle de l’écran est disponible, le driver pour l’ESP32 est développé séparément.
+
+### 4. Capteur RFID / NFC
+- **Modèle** : RC522  
+- **Fonction** : Scanner les tags des administrateurs pour accéder au mode maintenance et sélectionner la salle.
+
+### 5. Boutons
+- **2 boutons Haut / Bas** : Permettent de scroller pour le choix du bâtiment, étage et salle.  
+- **2 boutons Retour / Valider** : Pour confirmer ou revenir en arrière dans le menu.
+
+---
+
+## Tableau récapitulatif pour l'écran E-Paper 4.2inch
+
+| Interface | Pin ESP32 | Composant | Pin pour le   |
+|           |           |E-paper 4.2|    E-paper    |
+|-----------|-----------|-----------|---------------|
+| HSPI      | CLK 14    | CLK (SCLK)| 14            |
+| HSPI      | MISO 12   | -         | -             |
+| HSPI      | MOSI 13   | DIN (MOSI)| 13            |
+| HSPI      | CS 15     | CS        | 15            |
+|           |           | DC        | 32            |
+|           |           | BST (RST) | 27            |
+|           |           | BUSY      | 33            |
+
+
+## Tableau récapitulatif pour le capteur NFC RC522
+
+| Interface | Pin ESP32 | Composant choisi| Pin pour le      |
+|           |           |   RC522 reader  |  RC522 reader    |
+|-----------|-----------|-----------------|------------------|
+| VSPI      | CLK 18    | SCK (SCLK/CLK)  | 18               |
+| VSPI      | MISO 19   | MISO            | 19               |
+| VSPI      | MOSI 23   | MOSI            | 23               |
+| VSPI      | CS 5      | SDA (CS)        | 5                |
+|           |           | RST             | 4                |
+
+
+## Tableau récapitulatif pour les boutons 
+
+| Bouton   | Pin ESP32 |
+|----------|-----------|
+| UP       | 26        |
+| DOWN     | 25        |
+| BACK     | 16        |
+| SELECT   | 17        |
+
+
+
+
+
+
+
+
