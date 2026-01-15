@@ -154,7 +154,7 @@ Ce projet décrit l’architecture matérielle d’un système basé sur **ESP32
 
 ---
 
-## 1️⃣ ESP32-WROOM (Bloc jaune à gauche)
+##  ESP32-WROOM (Bloc jaune à gauche)
 
 **Rôle :** cerveau du système.
 
@@ -256,7 +256,7 @@ Ce projet décrit l’architecture matérielle d’un système basé sur **ESP32
 **Remarque :**
 - Peut partager le bus SPI avec d’autres périphériques
 - N’interfère pas avec l’e-ink (bus parallèle + I²C)
-
+  
 ---
 
 ##  Connecteur ED060SC4 (Nappe écran)
@@ -269,6 +269,34 @@ Ce projet décrit l’architecture matérielle d’un système basé sur **ESP32
 - Tensions e-ink : `VGH`, `VGL`, `VCOM`, `±HV`
 
 **Remarque :** interface propriétaire, très sensible
+
+
+## PCB test
+
+<p align="center">
+  <img src="Capture_schematic_PCB_Test.PNG" alt="Schéma de la PCB test (écran 6inch)">
+</p>
+
+Au niveau de la schematic on utilise les mêmes branchements que pour le vrai PCB. La seule différence est que nous pouvons omettre l’alimentation ainsi que le module RFID et les boutons car le but de ce PCB est juste de tester l’écran ED060SC4.
+
+Ici on utilise une BARRETTE_19 pour transmettre les signaux de l’esp32.
+
+On se focalise vraiment sur l’affichage via l’écran ED060SC4 d’où la présence de peu de composants du projet initial
+
+Cette carte a déjà été routé et devrait fonctionner nous n’avons aucune certitude car nous n’avons pas eu le temps de l’imprimer mais une simulation a été effectué sur JLCPCB ( voir routage ci-dessous) :
+
+<p align="center">
+  <span style="display: inline-block; margin: 0 20px; text-align: center;">
+    <img src="Capture_PCB_Test_2D.PNG" alt="Layout de la PCB test en 2D" width="300"><br>
+    <b>Layout de la PCB test en 2D</b>
+  </span>
+  <span style="display: inline-block; margin: 0 20px; text-align: center;">
+    <img src="Capture_PCB_Test_3D.PNG" alt="Layout de la PCB test en 3D" width="300"><br>
+    <b>Layout de la PCB test en 3D</b>
+  </span>
+</p>
+
+
 
 
 # Résultats et Démonstration
@@ -298,6 +326,7 @@ Voici le déroulement visuel de l’interface :
 | ![Liste Salles](salles.png) | → | ![Chargement](chargement.png) | → | ![Planning](affichage.png) |
 |---------------------------------|---|---------------------------------|---|---------------------------------|
 | Sélection de la salle           |   | Laps de chargement              |   | Affichage du planning          |
+
 
 
 
