@@ -142,6 +142,12 @@ Le schéma global permet à chaque module d’interagir avec `main.cpp`, qui orc
 
 # Partie Hardware
 
+## PCB original
+
+<p align="center">
+  <img src="Capture_schematic_PCB_original.PNG" alt="PCB orginal">
+</p>
+
 # Résultats et Démonstration
 
 Le fonctionnement actuel du système se déroule en plusieurs étapes :
@@ -169,6 +175,7 @@ Voici le déroulement visuel de l’interface :
 | ![Liste Salles](salles.png) | → | ![Chargement](chargement.png) | → | ![Planning](affichage.png) |
 |---------------------------------|---|---------------------------------|---|---------------------------------|
 | Sélection de la salle           |   | Laps de chargement              |   | Affichage du planning          |
+
 
 
 
