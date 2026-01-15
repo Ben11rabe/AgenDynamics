@@ -285,16 +285,19 @@ On se focalise vraiment sur l’affichage via l’écran ED060SC4 d’où la pr�
 
 Cette carte a déjà été routé et devrait fonctionner nous n’avons aucune certitude car nous n’avons pas eu le temps de l’imprimer mais une simulation a été effectué sur JLCPCB ( voir routage ci-dessous) :
 
-<p align="center">
-  <span style="display: inline-block; margin: 0 20px; text-align: center;">
-    <img src="Capture_PCB_Test_2D.PNG" alt="Layout de la PCB test en 2D" width="300"><br>
-    <b>Layout de la PCB test en 2D</b>
-  </span>
-  <span style="display: inline-block; margin: 0 20px; text-align: center;">
-    <img src="Capture_PCB_Test_3D.PNG" alt="Layout de la PCB test en 3D" width="300"><br>
-    <b>Layout de la PCB test en 3D</b>
-  </span>
-</p>
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="Capture_PCB_Test_2D.PNG" alt="Layout de la PCB test en 2D" width="300"><br>
+      <b>Layout de la PCB test en 2D</b>
+    </td>
+    <td align="center">
+      <img src="Capture3D_jlcpcb.PNG" alt="Layout de la PCB test en 3D JLC" width="300"><br>
+      <b>Layout de la PCB test en 3D JLC</b>
+    </td>
+  </tr>
+</table>
+
 
 
 
@@ -326,6 +329,7 @@ Voici le déroulement visuel de l’interface :
 | ![Liste Salles](salles.png) | → | ![Chargement](chargement.png) | → | ![Planning](affichage.png) |
 |---------------------------------|---|---------------------------------|---|---------------------------------|
 | Sélection de la salle           |   | Laps de chargement              |   | Affichage du planning          |
+
 
 
 
