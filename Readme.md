@@ -140,6 +140,7 @@ Le schéma global permet à chaque module d’interagir avec `main.cpp`, qui orc
 | rc522        | Gestion du lecteur RFID MFRC522. Fournit l’interface pour initialiser (`rc522_create`), démarrer (`rc522_start`) et arrêter (`rc522_pause`) le scan de tags, lire les cartes (`rc522_get_tag`), calculer le CRC et dispatcher les événements de tag scanné (`rc522_dispatch_event`). Le code supporte SPI et I2C et utilise une tâche FreeRTOS pour le scan continu des tags. |
 | wifi         | Gestion de la connexion Wi-Fi en mode station. Initialise le périphérique réseau, configure le SSID/mot de passe (`WIFI_SSID` / `WIFI_PASS`) et tente de se connecter. Utilise la boucle FreeRTOS pour attendre la connexion avec logs ESP. Fonction principale : `wifi_init_sta()`. |
 
+# Partie Hardware
 
 # Résultats et Démonstration
 
@@ -168,6 +169,7 @@ Voici le déroulement visuel de l’interface :
 | ![Liste Salles](salles.png) | → | ![Chargement](chargement.png) | → | ![Planning](affichage.png) |
 |---------------------------------|---|---------------------------------|---|---------------------------------|
 | Sélection de la salle           |   | Laps de chargement              |   | Affichage du planning          |
+
 
 
 
