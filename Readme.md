@@ -145,8 +145,131 @@ Le schéma global permet à chaque module d’interagir avec `main.cpp`, qui orc
 ## PCB original
 
 <p align="center">
-  <img src="Capture_schematic_PCB_original.PNG" alt="PCB orginal">
+  <img src="Capture_schematic_PCB_original.PNG" alt="Schéma de la PCB orginal">
 </p>
+
+# Documentation Matériel ESP32 + E-Ink
+
+Ce projet décrit l’architecture matérielle d’un système basé sur **ESP32** pilotant un écran **E-Ink ED060SC4**, avec RFID et alimentation intégrée.
+
+---
+
+## 1️⃣ ESP32-WROOM (Bloc jaune à gauche)
+
+**Rôle :** cerveau du système.
+
+### Fonctions principales :
+- **Génération des signaux numériques pour l’écran e-ink :**
+  - Bus données 8 bits : `EP_D0 … EP_D7`
+  - Pixel clock : `EP_CLK`
+  - Timing ligne/trame : `EP_SPH`, `EP_LE`, `EP_SOE`, `EP_SPV`
+- **Communication I²C avec :**
+  - PMIC `TPS65185`
+  - Expander GPIO `PCA9535`
+- **Gestion des périphériques :**
+  - RFID `RC522` (SPI)
+  - USB-UART
+- **Exécution de la logique logicielle :**
+  - Rafraîchissement e-ink
+  - Séquencement
+
+**Remarque :** L’ESP32 ne génère aucune tension e-ink, uniquement de la logique 3.3 V.
+
+---
+
+## 2️⃣ Alimentation principale & USB
+
+### 🔹 Connecteur USB + CH340 / CP2102 (USB-UART)
+- Sert à :
+  - Programmer l’ESP32
+  - Debug série
+- Fournit l’alimentation 5 V USB au système
+
+### 🔹 Régulateur 3.3 V
+- Convertit : `5 V USB / batterie → 3.3 V`
+- Alimente :
+  - ESP32
+  - PCA9535
+  - PMIC (logique)
+
+**Remarques :**
+- Condensateurs autour pour stabilité et filtrage
+- Sans cette partie, le système ne démarre pas
+
+---
+
+## 3️⃣ PCA9535PW (Expander GPIO I²C)
+
+**Rôle :** étendre les GPIO de l’ESP32 pour les signaux lents.
+
+### Signaux pilotés :
+- `PWRUP`
+- `WAKEUP`
+- `VCOM_CTRL`
+- `GMODE` (statique)
+- Boutons
+
+### Signaux lus :
+- `PWR_GOOD`
+- `INT`
+
+**À ne pas piloter :** `PCLK`, `SOE`, `SPV`, `D0…D7`
+
+---
+
+## 4️⃣ PMIC TPS65185 (Bloc en bas à droite)
+
+**Rôle :** composant clé pour l’écran e-ink.
+
+### Génère les tensions spécifiques e-ink :
+- `+15 V`, `−15 V`
+- `+22 V`, `−20 V`
+- `VCOM` analogique
+
+### Gère :
+- L’ordre d’allumage des tensions
+- Les protections : UVLO, OVP
+- Communication avec l’ESP32 via I²C
+
+**Remarques :**
+- Gros condensateurs : stockent l’énergie et évitent les chutes de tension
+- Obligatoires pour le fonctionnement e-ink
+- Sans le PMIC, le panneau ED060SC4 est inutilisable
+
+---
+
+## 5️⃣ Module RFID RC522 (Bloc SPI)
+
+**Rôle :** lecture de tags RFID/NFC (13,56 MHz)
+
+### Connexions SPI avec l’ESP32 :
+- `SCK`, `MOSI`, `MISO`, `CS`
+
+### GPIO de contrôle :
+- `RST`
+- `IRQ` (optionnel)
+
+**Utilité dans le projet :**
+- Identification utilisateur
+- Déclenchement d’un affichage e-ink (badge → affiche info)
+
+**Remarque :**
+- Peut partager le bus SPI avec d’autres périphériques
+- N’interfère pas avec l’e-ink (bus parallèle + I²C)
+
+---
+
+## 6️⃣ Connecteur ED060SC4 (Nappe écran)
+
+**Rôle :** connexion directe au verre e-ink
+
+### Transporte :
+- Bus données : `D0…D7`
+- Signaux de synchronisation : `CLK`, `SPH`, `LE`, `SPV`, `SOE`
+- Tensions e-ink : `VGH`, `VGL`, `VCOM`, `±HV`
+
+**Remarque :** interface propriétaire, très sensible
+
 
 # Résultats et Démonstration
 
@@ -175,6 +298,7 @@ Voici le déroulement visuel de l’interface :
 | ![Liste Salles](salles.png) | → | ![Chargement](chargement.png) | → | ![Planning](affichage.png) |
 |---------------------------------|---|---------------------------------|---|---------------------------------|
 | Sélection de la salle           |   | Laps de chargement              |   | Affichage du planning          |
+
 
 
 
