@@ -177,15 +177,15 @@ Ce projet décrit l’architecture matérielle d’un système basé sur **ESP32
 
 ---
 
-## 2️⃣ Alimentation principale & USB
+##  Alimentation principale & USB
 
-### 🔹 Connecteur USB + CH340 / CP2102 (USB-UART)
+###  Connecteur USB + CH340 / CP2102 (USB-UART)
 - Sert à :
   - Programmer l’ESP32
   - Debug série
 - Fournit l’alimentation 5 V USB au système
 
-### 🔹 Régulateur 3.3 V
+###  Régulateur 3.3 V
 - Convertit : `5 V USB / batterie → 3.3 V`
 - Alimente :
   - ESP32
@@ -198,7 +198,7 @@ Ce projet décrit l’architecture matérielle d’un système basé sur **ESP32
 
 ---
 
-## 3️⃣ PCA9535PW (Expander GPIO I²C)
+##  PCA9535PW (Expander GPIO I²C)
 
 **Rôle :** étendre les GPIO de l’ESP32 pour les signaux lents.
 
@@ -217,7 +217,7 @@ Ce projet décrit l’architecture matérielle d’un système basé sur **ESP32
 
 ---
 
-## 4️⃣ PMIC TPS65185 (Bloc en bas à droite)
+##  PMIC TPS65185 (Bloc en bas à droite)
 
 **Rôle :** composant clé pour l’écran e-ink.
 
@@ -238,7 +238,7 @@ Ce projet décrit l’architecture matérielle d’un système basé sur **ESP32
 
 ---
 
-## 5️⃣ Module RFID RC522 (Bloc SPI)
+##  Module RFID RC522 (Bloc SPI)
 
 **Rôle :** lecture de tags RFID/NFC (13,56 MHz)
 
@@ -259,7 +259,7 @@ Ce projet décrit l’architecture matérielle d’un système basé sur **ESP32
 
 ---
 
-## 6️⃣ Connecteur ED060SC4 (Nappe écran)
+##  Connecteur ED060SC4 (Nappe écran)
 
 **Rôle :** connexion directe au verre e-ink
 
@@ -298,6 +298,7 @@ Voici le déroulement visuel de l’interface :
 | ![Liste Salles](salles.png) | → | ![Chargement](chargement.png) | → | ![Planning](affichage.png) |
 |---------------------------------|---|---------------------------------|---|---------------------------------|
 | Sélection de la salle           |   | Laps de chargement              |   | Affichage du planning          |
+
 
 
 
