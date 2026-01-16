@@ -3,8 +3,8 @@
 #include "esp_log.h"
 
 // WiFi
-#define WIFI_SSID "ASUS_ZenBook"
-#define WIFI_PASS "kingkong"
+#define WIFI_SSID "SSID_DE_VOTRE_WIFI"
+#define WIFI_PASS "MDP_DE_VOTRE_WIFI"
 
 static const char *TAG = "WIFI_MODULE";
 
